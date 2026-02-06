@@ -6,30 +6,60 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4af37; --dark: #050505; --gray: #1a1a1a; --neon: rgba(212, 175, 55, 0.6); }
+        :root { 
+            --gold: #d4af37; 
+            --dark: rgba(10, 10, 10, 0.85); 
+            --neon: rgba(212, 175, 55, 0.5); 
+        }
+        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body {
             font-family: 'Segoe UI', sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            background-color: var(--dark); color: #fff; margin: 0; min-height: 100vh;
+            background: #000; /* Fallback */
+            margin: 0; min-height: 100vh;
             padding: 20px; justify-content: flex-start;
+            overflow-x: hidden;
         }
+
+        /* THE STUDIO BACKGROUND */
+        .bg-video-wrap {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; overflow: hidden;
+        }
+        .bg-video-wrap img {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: brightness(0.4) blur(3px);
+            transform: scale(1.1);
+            animation: bgZoom 20s infinite alternate;
+        }
+
+        @keyframes bgZoom {
+            from { transform: scale(1.1); }
+            to { transform: scale(1.25); }
+        }
+
+        /* GLASSMORPHISM CONTAINER */
         #receipt-area { 
             display: flex; flex-direction: column; align-items: center; 
-            padding: 30px; background: var(--dark); width: 100%; max-width: 600px;
-            position: relative; border-radius: 20px;
+            padding: 25px; 
+            background: var(--dark);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            width: 100%; max-width: 500px;
+            position: relative; border-radius: 24px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 15px var(--neon); }
-            50% { box-shadow: 0 0 40px var(--neon); }
-            100% { box-shadow: 0 0 15px var(--neon); }
-        }
+
         .container { 
-            position: relative; width: 85vw; height: 85vw; 
-            max-width: 450px; max-height: 450px;
+            position: relative; width: 80vw; height: 80vw; 
+            max-width: 400px; max-height: 400px;
             margin: 20px 0; border-radius: 50%;
-            animation: pulse 3s infinite ease-in-out;
+            box-shadow: 0 0 30px var(--neon);
         }
+
         .stable-logo {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -38,65 +68,56 @@
             background: #000 url('image_wheel.png') center/cover;
             z-index: 10;
         }
-        .pointer {
-            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 18px solid transparent;
-            border-right: 18px solid transparent; border-top: 35px solid #ff3333;
-            z-index: 20;
-        }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid var(--gray); transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
+
+        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1a1a1a; transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
+
+        .controls { width: 100%; max-width: 400px; margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
         
-        .controls { width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 15px; align-items: center;}
-        
-        #name-input {
-            width: 100%; padding: 15px; background: #111; border: 1px solid var(--gold);
-            color: #fff; border-radius: 10px; font-size: 1rem; text-align: center;
-            margin-bottom: 5px; outline: none;
+        input {
+            width: 100%; padding: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--gold);
+            color: #fff; border-radius: 12px; font-size: 1rem; text-align: center; outline: none;
         }
-        #name-input::placeholder { color: #555; }
 
         button {
-            padding: 18px; font-size: 1.1rem; cursor: pointer;
+            padding: 16px; font-size: 1rem; cursor: pointer;
             font-weight: 900; border-radius: 12px; border: none;
             transition: 0.3s; text-transform: uppercase; width: 100%;
             letter-spacing: 2px;
         }
-        #spin-btn { background: var(--gold); color: #000; }
+        #spin-btn { background: var(--gold); color: #000; box-shadow: 0 5px 15px rgba(212,175,55,0.3); }
         #claim-btn { background: #25D366; color: #fff; display: none; }
-        #download-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); display: none; font-size: 0.8rem; }
+        #download-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #fff; display: none; margin-top: 5px; }
         
-        #result { margin: 10px 0; font-size: 1.6rem; color: var(--gold); font-weight: bold; text-align: center;}
-        #winner-name-display { color: #fff; font-size: 1.2rem; margin-bottom: 5px; font-weight: 300; letter-spacing: 1px;}
-        .social-tag { font-size: 0.8rem; color: #666; margin-top: 15px; }
-        
-        /* TERMS LINK */
-        .terms-link { font-size: 0.65rem; color: #444; text-decoration: none; margin-top: 10px; transition: 0.3s; }
-        .terms-link:hover { color: var(--gold); }
+        #result { margin: 10px 0; font-size: 1.5rem; color: var(--gold); font-weight: bold; text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.5);}
+        .terms-link { font-size: 0.6rem; color: #888; text-decoration: none; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div id="receipt-area">
-        <h1 style="letter-spacing: 4px; margin: 0; font-size: 1.4rem; text-align: center;">MONK STUDIOS PRODUCTION</h1>
-        <p style="color: var(--gold); margin: 5px 0 10px 0; font-size: 0.7rem; letter-spacing: 3px; font-weight: bold;">TEAM VERIFIED EXPERIENCE</p>
+    <div class="bg-video-wrap">
+        <img src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80&w=2070" alt="Studio Background">
+    </div>
 
-        <div id="winner-name-display"></div>
+    <div id="receipt-area">
+        <h1 style="letter-spacing: 4px; margin: 0; font-size: 1.3rem; text-align: center; color: #fff;">MONK STUDIOS PRODUCTION</h1>
+        <p style="color: var(--gold); margin: 5px 0 10px 0; font-size: 0.65rem; letter-spacing: 3px; font-weight: bold;">TEAM VERIFIED EXPERIENCE</p>
+
+        <div id="winner-name-display" style="color: #fff; font-size: 1.1rem;"></div>
 
         <div class="container" id="wheel-container">
-            <div class="pointer"></div>
+            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff3333; z-index: 20;"></div>
             <div class="stable-logo"></div>
             <canvas id="wheel" width="800" height="800"></canvas>
         </div>
 
         <div id="result">ENTER NAME TO SPIN</div>
-        <div id="auth-stamp" style="font-size: 0.8rem; color: #555; margin-top: 5px; font-family: monospace;"></div>
-        <div class="social-tag">Tag us: @MonkStudiosProduction</div>
+        <div id="auth-stamp" style="font-size: 0.75rem; color: #888; margin-top: 5px; font-family: monospace;"></div>
         
         <a href="terms.html" class="terms-link">Terms & Conditions Apply</a>
     </div>
 
     <div class="controls">
-        <input type="text" id="name-input" placeholder="Artist / Client Name" maxlength="25">
+        <input type="text" id="name-input" placeholder="Artist Name">
         <button id="spin-btn">Spin to Win</button>
         <button id="claim-btn">Claim Prize via WhatsApp</button>
         <button id="download-btn">Download Digital Receipt</button>
@@ -108,7 +129,6 @@
 
     <script>
         const LOG_URL = "https://script.google.com/macros/s/AKfycbzqfPP4PaDBj7HL6TLIV0KOQVb1PpDiRp5XVbmUkfSUUFb7E7Q2iucJXhbSWkOxhvEurw/exec";
-
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
         const spinBtn = document.getElementById("spin-btn");
@@ -118,7 +138,6 @@
         const resultText = document.getElementById("result");
         const winnerDisplay = document.getElementById("winner-name-display");
         const authStamp = document.getElementById("auth-stamp");
-
         const tick = document.getElementById("tick-sound");
         const bgm = document.getElementById("bgm-sound");
         const success = document.getElementById("success-sound");
@@ -149,10 +168,7 @@
 
         spinBtn.onclick = () => {
             const userName = nameInput.value.trim();
-            if(!userName) {
-                alert("Please enter your name first!");
-                return;
-            }
+            if(!userName) { alert("Please enter your name first!"); return; }
             if(hasSpun) return;
             hasSpun = true;
 
@@ -171,30 +187,21 @@
                 
                 if (winner === "Spin Again") {
                     resultText.innerText = "ALMOST! TRY AGAIN";
-                    hasSpun = false; 
-                    spinBtn.style.visibility = "visible";
-                    nameInput.style.display = "block";
+                    hasSpun = false; spinBtn.style.visibility = "visible"; nameInput.style.display = "block";
                 } else {
                     const timeHash = Date.now().toString().slice(-4);
                     const finalCode = `MS-${timeHash}-${codes[winningIndex]}`;
-                    
                     winnerDisplay.innerText = userName.toUpperCase();
                     resultText.innerText = winner;
-                    
                     logToSheet(userName, winner, finalCode);
-                    
                     success.play().catch(()=>{});
                     confetti({ particleCount: 150, spread: 70, colors: ['#d4af37', '#ffffff'] });
-                    authStamp.innerText = `VERIFICATION ID: ${finalCode}`;
+                    authStamp.innerText = `ID: ${finalCode}`;
                     claimBtn.style.display = "block";
                     downloadBtn.style.display = "block";
 
                     claimBtn.onclick = () => {
-                        const msg = `*MONK STUDIOS PRODUCTION*\n\n` +
-                                    `Name: *${userName}*\n` +
-                                    `Prize: *${winner}*\n` +
-                                    `ID: ${finalCode}\n\n` +
-                                    `Hi Team, please verify my win!`;
+                        const msg = `*MONK STUDIOS PRODUCTION*\n\nName: *${userName}*\nPrize: *${winner}*\nID: ${finalCode}\n\nHi Team, please verify my win!`;
                         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
                     };
                 }
@@ -202,9 +209,9 @@
         };
 
         downloadBtn.onclick = () => {
-            html2canvas(document.querySelector("#receipt-area"), { backgroundColor: "#050505", scale: 2 }).then(canvas => {
+            html2canvas(document.querySelector("#receipt-area"), { backgroundColor: "#000", scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `Monk_Production_Win.png`;
+                link.download = `Monk_Win.png`;
                 link.href = canvas.toDataURL();
                 link.click();
             });
