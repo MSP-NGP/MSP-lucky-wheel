@@ -1,167 +1,162 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Monk Studios | Team Verification System</title>
+    <title>Monk Studios Production | Lucky Wheel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root { --gold: #d4af37; --dark: #050505; --gray: #1a1a1a; }
+        :root { --gold: #d4af37; --dark: #050505; --gray: #1a1a1a; --neon: rgba(212, 175, 55, 0.6); }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Segoe UI', sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            background-color: var(--dark); color: #fff; margin: 0; min-height: 100vh; justify-content: center;
+            background-color: var(--dark); color: #fff; margin: 0; min-height: 100vh;
+            padding: 20px; justify-content: flex-start;
         }
-        
         #receipt-area { 
             display: flex; flex-direction: column; align-items: center; 
-            padding: 30px; background: var(--dark); border-radius: 20px;
-            position: relative;
+            padding: 30px; background: var(--dark); width: 100%; max-width: 600px;
+            position: relative; border-radius: 20px;
         }
-
-        .watermark {
-            display: none; position: absolute; bottom: 10px; right: 20px;
-            font-size: 0.7rem; color: rgba(212, 175, 55, 0.3);
-            text-transform: uppercase; letter-spacing: 2px;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 15px var(--neon); }
+            50% { box-shadow: 0 0 40px var(--neon); }
+            100% { box-shadow: 0 0 15px var(--neon); }
         }
-
-        .container { position: relative; width: 440px; height: 440px; }
-        
+        .container { 
+            position: relative; width: 85vw; height: 85vw; 
+            max-width: 450px; max-height: 450px;
+            margin: 20px 0; border-radius: 50%;
+            animation: pulse 3s infinite ease-in-out;
+        }
         .stable-logo {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 110px; height: 110px;
+            width: 28%; height: 28%;
             border-radius: 50%; border: 3px solid var(--gold);
             background: #000 url('image_wheel.png') center/cover;
-            z-index: 10; box-shadow: 0 0 30px rgba(0,0,0,1);
+            z-index: 10;
         }
-
         .pointer {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
             width: 0; height: 0; border-left: 18px solid transparent;
             border-right: 18px solid transparent; border-top: 35px solid #ff3333;
             z-index: 20;
         }
-
-        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid var(--gray); transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
-
-        .controls { margin-top: 20px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center;}
+        #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid var(--gray); transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
         
-        button {
-            padding: 16px 40px; font-size: 1.1rem; cursor: pointer;
-            font-weight: 900; border-radius: 8px; border: none;
-            transition: 0.3s; text-transform: uppercase; width: 320px;
-            letter-spacing: 1px;
+        .controls { width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 15px; align-items: center;}
+        
+        #name-input {
+            width: 100%; padding: 15px; background: #111; border: 1px solid var(--gold);
+            color: #fff; border-radius: 10px; font-size: 1rem; text-align: center;
+            margin-bottom: 5px; outline: none;
         }
+        #name-input::placeholder { color: #555; }
 
+        button {
+            padding: 18px; font-size: 1.1rem; cursor: pointer;
+            font-weight: 900; border-radius: 12px; border: none;
+            transition: 0.3s; text-transform: uppercase; width: 100%;
+            letter-spacing: 2px;
+        }
         #spin-btn { background: var(--gold); color: #000; }
         #claim-btn { background: #25D366; color: #fff; display: none; }
-        #download-btn { background: transparent; color: #888; border: 1px solid #444; display: none; font-size: 0.8rem; margin-top: 5px; }
+        #download-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); display: none; font-size: 0.8rem; }
         
-        #result { margin-top: 15px; font-size: 2rem; color: var(--gold); font-weight: bold; height: 45px; }
+        #result { margin: 10px 0; font-size: 1.6rem; color: var(--gold); font-weight: bold; text-align: center;}
+        #winner-name-display { color: #fff; font-size: 1.2rem; margin-bottom: 5px; font-weight: 300; letter-spacing: 1px;}
+        .social-tag { font-size: 0.8rem; color: #666; margin-top: 15px; }
         
-        /* Modal Style */
-        .modal {
-            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: #111; padding: 30px; border: 1px solid var(--gold); width: 80%; max-width: 500px;
-            border-radius: 15px; text-align: left; line-height: 1.6;
-        }
-        .modal-content h2 { color: var(--gold); margin-top: 0; }
-        .close-modal { color: #888; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        
-        .terms-link { margin-top: 20px; color: #444; font-size: 0.7rem; cursor: pointer; text-decoration: underline; }
+        /* TERMS LINK */
+        .terms-link { font-size: 0.65rem; color: #444; text-decoration: none; margin-top: 10px; transition: 0.3s; }
+        .terms-link:hover { color: var(--gold); }
     </style>
 </head>
 <body>
 
     <div id="receipt-area">
-        <h1 style="letter-spacing: 6px; margin: 0; font-size: 1.6rem;">MONK STUDIOS</h1>
-        <p style="color: #555; margin: 5px 0 25px 0; font-size: 0.7rem; letter-spacing: 2px;">PRODUCTION TEAM</p>
+        <h1 style="letter-spacing: 4px; margin: 0; font-size: 1.4rem; text-align: center;">MONK STUDIOS PRODUCTION</h1>
+        <p style="color: var(--gold); margin: 5px 0 10px 0; font-size: 0.7rem; letter-spacing: 3px; font-weight: bold;">TEAM VERIFIED EXPERIENCE</p>
 
-        <div class="container">
+        <div id="winner-name-display"></div>
+
+        <div class="container" id="wheel-container">
             <div class="pointer"></div>
             <div class="stable-logo"></div>
-            <canvas id="wheel" width="500" height="500"></canvas>
+            <canvas id="wheel" width="800" height="800"></canvas>
         </div>
 
-        <div id="result">OFFICIAL LUCK DRAW</div>
-        <div id="auth-stamp" style="font-size: 0.7rem; color: #444; margin-top: 10px; text-transform: uppercase;"></div>
-        <div id="watermark-el" class="watermark">Authorized by Monk Studios Production</div>
+        <div id="result">ENTER NAME TO SPIN</div>
+        <div id="auth-stamp" style="font-size: 0.8rem; color: #555; margin-top: 5px; font-family: monospace;"></div>
+        <div class="social-tag">Tag us: @MonkStudiosProduction</div>
+        
+        <a href="terms.html" class="terms-link">Terms & Conditions Apply</a>
     </div>
 
     <div class="controls">
-        <button id="spin-btn">Spin the Wheel</button>
-        <button id="claim-btn">Verify with the Team</button>
-        <button id="download-btn">Save Digital Receipt</button>
-        <div class="terms-link" onclick="openTerms()">Terms & Conditions</div>
+        <input type="text" id="name-input" placeholder="Artist / Client Name" maxlength="25">
+        <button id="spin-btn">Spin to Win</button>
+        <button id="claim-btn">Claim Prize via WhatsApp</button>
+        <button id="download-btn">Download Digital Receipt</button>
     </div>
 
-    <div id="termsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeTerms()">&times;</span>
-            <h2>Studio Rules</h2>
-            <ul style="font-size: 0.9rem; padding-left: 20px;">
-                <li>One spin permitted per client per session.</li>
-                <li>Prizes must be verified by the Monk Studios Production team.</li>
-                <li>Claim codes are unique and valid for 30 days.</li>
-                <li>Offers cannot be clubbed with other ongoing discounts.</li>
-                <li>The Team reserves the right to final decisions on prize distribution.</li>
-            </ul>
-        </div>
-    </div>
-
-    <audio id="tick-sound" src="tick.wav" preload="auto"></audio>
-    <audio id="bgm-sound" src="bgm.mp3" preload="auto" loop></audio>
-    <audio id="success-sound" src="success.wav" preload="auto"></audio>
+    <audio id="tick-sound" src="tick.wav"></audio>
+    <audio id="bgm-sound" src="bgm.mp3" loop></audio>
+    <audio id="success-sound" src="success.wav"></audio>
 
     <script>
+        const LOG_URL = "https://script.google.com/macros/s/AKfycbzqfPP4PaDBj7HL6TLIV0KOQVb1PpDiRp5XVbmUkfSUUFb7E7Q2iucJXhbSWkOxhvEurw/exec";
+
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
         const spinBtn = document.getElementById("spin-btn");
+        const nameInput = document.getElementById("name-input");
         const claimBtn = document.getElementById("claim-btn");
         const downloadBtn = document.getElementById("download-btn");
         const resultText = document.getElementById("result");
+        const winnerDisplay = document.getElementById("winner-name-display");
         const authStamp = document.getElementById("auth-stamp");
-        const watermark = document.getElementById("watermark-el");
 
         const tick = document.getElementById("tick-sound");
         const bgm = document.getElementById("bgm-sound");
         const success = document.getElementById("success-sound");
 
         const WHATSAPP_NUMBER = "917887621520"; 
-        const offers = ["₹10 Mix & Master", "Free Taal Engine", "Live Consultation", "Rustic Lounge Access", "Free Foley Session", "10% Studio Off", "Social Shoutout", "Spin Again"];
-        const codes = ["10MM", "TAAL", "LIVE", "WOOD", "FOLY", "10PC", "SHOUT", "TRY"];
+        const offers = ["10% Studio Off", "Rs. 500 Mixing Off", "Karaoke @ Rs. 400", "Cover @ Rs. 3500", "Rs. 500 3hr Off", "Rs. 200 Pre-book Off", "1hr Free Jam", "Spin Again"];
+        const codes = ["10OFF", "MIX500", "KARA400", "COV3500", "3HR500", "PRE200", "JAM1HR", "TRY"];
         const colors = ["#000000", "#d4af37", "#1a1a1a", "#b8860b", "#000000", "#d4af37", "#1a1a1a", "#b8860b"];
         
         let currentRotation = 0;
         let hasSpun = false;
-        let finalCode = "";
 
         function drawWheel() {
             for (let i = 0; i < 8; i++) {
-                ctx.beginPath();
-                ctx.fillStyle = colors[i];
-                ctx.moveTo(250, 250);
-                ctx.arc(250, 250, 250, (i*45)*Math.PI/180, ((i+1)*45)*Math.PI/180);
-                ctx.fill();
-                ctx.save();
-                ctx.translate(250, 250);
+                ctx.beginPath(); ctx.fillStyle = colors[i]; ctx.moveTo(400, 400);
+                ctx.arc(400, 400, 400, (i*45)*Math.PI/180, ((i+1)*45)*Math.PI/180);
+                ctx.fill(); ctx.save(); ctx.translate(400, 400);
                 ctx.rotate((i*45 + 22.5) * Math.PI / 180);
-                ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = "bold 15px Arial";
-                ctx.fillText(offers[i], 230, 5);
-                ctx.restore();
+                ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = "bold 24px Arial";
+                ctx.fillText(offers[i], 370, 10); ctx.restore();
             }
         }
         drawWheel();
 
-        function openTerms() { document.getElementById("termsModal").style.display = "flex"; }
-        function closeTerms() { document.getElementById("termsModal").style.display = "none"; }
+        function logToSheet(name, prize, id) {
+            fetch(`${LOG_URL}?name=${encodeURIComponent(name)}&prize=${encodeURIComponent(prize)}&id=${encodeURIComponent(id)}`, { mode: 'no-cors' });
+        }
 
         spinBtn.onclick = () => {
+            const userName = nameInput.value.trim();
+            if(!userName) {
+                alert("Please enter your name first!");
+                return;
+            }
             if(hasSpun) return;
             hasSpun = true;
+
+            nameInput.style.display = "none";
             spinBtn.style.visibility = "hidden";
             bgm.volume = 0.4; bgm.play().catch(()=>{});
             
@@ -169,57 +164,49 @@
             currentRotation += spinDegrees;
             canvas.style.transform = `rotate(${currentRotation}deg)`;
 
-            let lastTick = -1;
-            const startTime = performance.now();
-            function loop() {
-                const progress = Math.min((performance.now() - startTime) / 6000, 1);
-                const angle = (currentRotation * (1 - Math.pow(1 - progress, 4))) % 360;
-                const seg = Math.floor(angle / 45);
-                if (seg !== lastTick) { tick.currentTime = 0; tick.play().catch(()=>{}); lastTick = seg; }
-                if (progress < 1) requestAnimationFrame(loop);
-            }
-            requestAnimationFrame(loop);
-
             setTimeout(() => {
                 bgm.pause();
                 const winningIndex = Math.floor((360 - (currentRotation % 360) + 270) % 360 / 45);
                 const winner = offers[winningIndex];
                 
                 if (winner === "Spin Again") {
-                    resultText.innerText = "Try One More Time!";
-                    hasSpun = false;
+                    resultText.innerText = "ALMOST! TRY AGAIN";
+                    hasSpun = false; 
                     spinBtn.style.visibility = "visible";
+                    nameInput.style.display = "block";
                 } else {
-                    finalCode = `MS-${Math.floor(1000+Math.random()*9000)}-${codes[winningIndex]}`;
+                    const timeHash = Date.now().toString().slice(-4);
+                    const finalCode = `MS-${timeHash}-${codes[winningIndex]}`;
+                    
+                    winnerDisplay.innerText = userName.toUpperCase();
                     resultText.innerText = winner;
+                    
+                    logToSheet(userName, winner, finalCode);
+                    
                     success.play().catch(()=>{});
-                    confetti({ particleCount: 150, spread: 60 });
-                    authStamp.innerText = `Verified Code: ${finalCode}`;
+                    confetti({ particleCount: 150, spread: 70, colors: ['#d4af37', '#ffffff'] });
+                    authStamp.innerText = `VERIFICATION ID: ${finalCode}`;
                     claimBtn.style.display = "block";
                     downloadBtn.style.display = "block";
+
+                    claimBtn.onclick = () => {
+                        const msg = `*MONK STUDIOS PRODUCTION*\n\n` +
+                                    `Name: *${userName}*\n` +
+                                    `Prize: *${winner}*\n` +
+                                    `ID: ${finalCode}\n\n` +
+                                    `Hi Team, please verify my win!`;
+                        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+                    };
                 }
             }, 6000);
         };
 
-        claimBtn.onclick = () => {
-            const msg = `*MONK STUDIOS PRODUCTION | OFFICIAL CLAIM*\n\n` +
-                        `Hello Monk Studios Production Team,\n\n` +
-                        `I have won the following prize:\n` +
-                        `• Prize: ${resultText.innerText}\n` +
-                        `• System Code: ${finalCode}\n` +
-                        `• Verified: ${new Date().toLocaleString()}\n\n` +
-                        `Please verify this claim. Thank you!`;
-            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
-        };
-
         downloadBtn.onclick = () => {
-            watermark.style.display = "block";
-            html2canvas(document.querySelector("#receipt-area"), { backgroundColor: "#050505" }).then(canvas => {
+            html2canvas(document.querySelector("#receipt-area"), { backgroundColor: "#050505", scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `MonkStudios_Team_Win_${finalCode}.png`;
+                link.download = `Monk_Production_Win.png`;
                 link.href = canvas.toDataURL();
                 link.click();
-                watermark.style.display = "none";
             });
         };
     </script>
