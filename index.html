@@ -21,8 +21,11 @@
             display: flex; flex-direction: column; align-items: center; padding: 25px; 
             background: var(--dark); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             width: 100%; max-width: 500px; border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2);
+            position: relative;
         }
-        .insta-link { position: absolute; top: 20px; right: 20px; color: var(--gold); font-size: 1.5rem; }
+        .insta-link { position: absolute; top: 20px; right: 20px; color: var(--gold); font-size: 1.5rem; transition: 0.3s; }
+        .insta-link:hover { transform: scale(1.1); color: #fff; }
+        
         .container { position: relative; width: 75vw; height: 75vw; max-width: 380px; max-height: 380px; margin: 20px 0; border-radius: 50%; box-shadow: 0 0 30px var(--neon); }
         #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #111; transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
         .stable-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28%; height: 28%; border-radius: 50%; border: 3px solid var(--gold); background: #000 url('image_wheel.png') center/cover; z-index: 10; }
@@ -65,17 +68,18 @@
 
     <div class="controls">
         <input type="text" id="name-input" placeholder="Artist Name">
-        <input type="tel" id="phone-input" placeholder="WhatsApp Number (10 Digits)" maxlength="10">
+        <input type="tel" id="phone-input" placeholder="WhatsApp Number" maxlength="10">
         <button id="spin-btn">Spin to Win</button>
         <button id="claim-btn">Claim Prize via WhatsApp</button>
         <button id="download-btn">Download Digital Receipt</button>
     </div>
 
+    <audio id="tick-sound" src="tick.wav"></audio>
     <audio id="bgm-sound" src="bgm.mp3" loop></audio>
     <audio id="success-sound" src="success.wav"></audio>
 
     <script>
-        const LOG_URL = "https://script.google.com/macros/s/AKfycbzqfPP4PaDBj7HL6TLIV0KOQVb1PpDiRp5XVbmUkfSUUFb7E7Q2iucJXhbSWkOxhvEurw/exec";
+        const LOG_URL = "https://script.google.com/macros/s/AKfycbze7LyDYA5QcGlhZ4-WKVAVw7bieQv15FFPRUW0udXOiNfee0BynhTaxXSEmEteYw-y7w/exec";
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
         const spinBtn = document.getElementById("spin-btn");
@@ -87,6 +91,7 @@
         const winnerDisplay = document.getElementById("winner-name-display");
         const authStamp = document.getElementById("auth-stamp");
 
+        const tick = document.getElementById("tick-sound");
         const bgm = document.getElementById("bgm-sound");
         const success = document.getElementById("success-sound");
 
@@ -110,6 +115,17 @@
         }
         drawWheel();
 
+        // Audio Tick Logic
+        let lastTickAngle = 0;
+        function checkTick(currentAngle) {
+            const anglePerSlice = 45;
+            if (Math.floor(currentAngle / anglePerSlice) !== Math.floor(lastTickAngle / anglePerSlice)) {
+                tick.currentTime = 0;
+                tick.play().catch(()=>{});
+            }
+            lastTickAngle = currentAngle;
+        }
+
         spinBtn.onclick = async () => {
             const userName = nameInput.value.trim();
             const userPhone = phoneInput.value.trim();
@@ -130,11 +146,25 @@
                 }
             } catch (e) { console.log("Check failed, allowing spin."); }
 
-            // START SPIN
             bgm.volume = 0.4; bgm.play().catch(()=>{});
+            
             const spinDegrees = (360 * 10) + Math.floor(Math.random() * 360);
             currentRotation += spinDegrees;
+            
+            // Start rotation animation
             canvas.style.transform = `rotate(${currentRotation}deg)`;
+            
+            // Audio-visual sync for ticks
+            let start = null;
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = timestamp - start;
+                const currentRotationFloat = (progress / 6000) * spinDegrees; // Approx rotation for sound
+                checkTick(currentRotationFloat);
+                if (progress < 6000) window.requestAnimationFrame(step);
+            }
+            window.requestAnimationFrame(step);
+
             nameInput.style.display = "none"; phoneInput.style.display = "none"; spinBtn.style.visibility = "hidden";
 
             setTimeout(() => {
@@ -153,7 +183,6 @@
                     resultText.innerText = winner;
                     authStamp.innerText = `ID: ${finalCode}`;
                     
-                    // LOG WIN TO SHEET
                     fetch(`${LOG_URL}?action=log&name=${encodeURIComponent(userName)}&phone=${userPhone}&prize=${encodeURIComponent(winner)}&id=${finalCode}`, { mode: 'no-cors' });
                     
                     success.play().catch(()=>{});
