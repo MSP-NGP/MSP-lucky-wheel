@@ -53,7 +53,7 @@
         <a href="https://www.instagram.com/monkstudiosproduction/" target="_blank" class="insta-link"><i class="fab fa-instagram"></i></a>
         <h1 style="letter-spacing: 4px; margin: 0; font-size: 1.2rem; text-align: center; color: #fff;">MONK STUDIOS PRODUCTION</h1>
         <p style="color: var(--gold); margin: 5px 0 10px 0; font-size: 0.6rem; letter-spacing: 3px; font-weight: bold;">TEAM VERIFIED EXPERIENCE</p>
-        <div id="winner-name-display" style="color: #fff; font-size: 1rem; margin-bottom: 5px;"></div>
+        <div id="winner-name-display" style="color: #fff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;"></div>
 
         <div class="container">
             <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #ff3333; z-index: 20;"></div>
@@ -68,7 +68,7 @@
 
     <div class="controls">
         <input type="text" id="name-input" placeholder="Artist Name">
-        <input type="tel" id="phone-input" placeholder="WhatsApp Number" maxlength="10">
+        <input type="tel" id="phone-input" placeholder="WhatsApp Number (10 Digits)" maxlength="10">
         <button id="spin-btn">Spin to Win</button>
         <button id="claim-btn">Claim Prize via WhatsApp</button>
         <button id="download-btn">Download Digital Receipt</button>
@@ -79,7 +79,9 @@
     <audio id="success-sound" src="success.wav"></audio>
 
     <script>
-        const LOG_URL = "https://script.google.com/macros/s/AKfycbze7LyDYA5QcGlhZ4-WKVAVw7bieQv15FFPRUW0udXOiNfee0BynhTaxXSEmEteYw-y7w/exec";
+        // UPDATED URL
+        const LOG_URL = "https://script.google.com/macros/s/AKfycbxSjcU_oQ7-XTnpx-5eL3dlSkO7yA6tCGFdp1HB76y_ddVvifNC2RXFkKa17R7Otlt9gQ/exec";
+        
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
         const spinBtn = document.getElementById("spin-btn");
@@ -115,15 +117,11 @@
         }
         drawWheel();
 
-        // Audio Tick Logic
-        let lastTickAngle = 0;
-        function checkTick(currentAngle) {
-            const anglePerSlice = 45;
-            if (Math.floor(currentAngle / anglePerSlice) !== Math.floor(lastTickAngle / anglePerSlice)) {
-                tick.currentTime = 0;
-                tick.play().catch(()=>{});
-            }
-            lastTickAngle = currentAngle;
+        // New Audio Tick Sync Logic
+        function playTick() {
+            tick.pause();
+            tick.currentTime = 0;
+            tick.play().catch(()=>{});
         }
 
         spinBtn.onclick = async () => {
@@ -141,33 +139,37 @@
                 const response = await fetch(`${LOG_URL}?action=check&phone=${userPhone}`);
                 const status = await response.text();
                 if (status.includes("REJECTED")) {
-                    alert("⚠️ Access Denied: You have already used your spin this month.");
+                    alert("⚠️ Access Denied: Only 1 spin per artist every 30 days.");
                     spinBtn.innerText = "SPIN TO WIN"; spinBtn.disabled = false; return;
                 }
-            } catch (e) { console.log("Check failed, allowing spin."); }
+            } catch (e) { console.log("Check bypassed due to connection."); }
 
             bgm.volume = 0.4; bgm.play().catch(()=>{});
             
             const spinDegrees = (360 * 10) + Math.floor(Math.random() * 360);
             currentRotation += spinDegrees;
             
-            // Start rotation animation
+            // Apply CSS Transition
             canvas.style.transform = `rotate(${currentRotation}deg)`;
             
-            // Audio-visual sync for ticks
-            let start = null;
-            function step(timestamp) {
-                if (!start) start = timestamp;
-                const progress = timestamp - start;
-                const currentRotationFloat = (progress / 6000) * spinDegrees; // Approx rotation for sound
-                checkTick(currentRotationFloat);
-                if (progress < 6000) window.requestAnimationFrame(step);
-            }
-            window.requestAnimationFrame(step);
+            // Dynamic Ticking Sound Calculation
+            let lastTickSlice = 0;
+            const checkInterval = setInterval(() => {
+                const computedStyle = window.getComputedStyle(canvas);
+                const matrix = new WebKitCSSMatrix(computedStyle.transform);
+                const angle = Math.round(Math.atan2(matrix.b, matrix.a) * (180/Math.PI));
+                const currentSlice = Math.floor(((angle < 0 ? angle + 360 : angle) % 360) / 45);
+                
+                if(currentSlice !== lastTickSlice) {
+                    playTick();
+                    lastTickSlice = currentSlice;
+                }
+            }, 50);
 
             nameInput.style.display = "none"; phoneInput.style.display = "none"; spinBtn.style.visibility = "hidden";
 
             setTimeout(() => {
+                clearInterval(checkInterval);
                 bgm.pause();
                 const winningIndex = Math.floor((360 - (currentRotation % 360) + 270) % 360 / 45);
                 const winner = offers[winningIndex];
@@ -190,7 +192,7 @@
                     claimBtn.style.display = "block"; downloadBtn.style.display = "block";
 
                     claimBtn.onclick = () => {
-                        const msg = `*MONK STUDIOS PRODUCTION*\n\nName: *${userName}*\nPhone: *${userPhone}*\nPrize: *${winner}*\nID: ${finalCode}\n\nHi Team, please verify my win!`;
+                        const msg = `*MONK STUDIOS PRODUCTION*\n\nName: *${userName}*\nPhone: *${userPhone}*\nPrize: *${winner}*\nID: ${finalCode}\n\nHi Mohit, please verify my win!`;
                         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
                     };
                 }
