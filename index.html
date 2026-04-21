@@ -21,11 +21,8 @@
             display: flex; flex-direction: column; align-items: center; padding: 25px; 
             background: var(--dark); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             width: 100%; max-width: 500px; border-radius: 24px; border: 1px solid rgba(212, 175, 55, 0.2);
-            position: relative;
         }
-        .insta-link { position: absolute; top: 20px; right: 20px; color: var(--gold); font-size: 1.5rem; transition: 0.3s; }
-        .insta-link:hover { transform: scale(1.1); color: #fff; }
-        
+        .insta-link { position: absolute; top: 20px; right: 20px; color: var(--gold); font-size: 1.5rem; }
         .container { position: relative; width: 75vw; height: 75vw; max-width: 380px; max-height: 380px; margin: 20px 0; border-radius: 50%; box-shadow: 0 0 30px var(--neon); }
         #wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #111; transition: transform 6s cubic-bezier(0.1, 0, 0.1, 1); }
         .stable-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28%; height: 28%; border-radius: 50%; border: 3px solid var(--gold); background: #000 url('image_wheel.png') center/cover; z-index: 10; }
@@ -40,7 +37,19 @@
         #download-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #fff; display: none; }
         
         #result { margin: 10px 0; font-size: 1.4rem; color: var(--gold); font-weight: bold; text-align: center; }
-        .terms-link { font-size: 0.6rem; color: #888; text-decoration: none; margin-top: 15px; opacity: 0.7; }
+        .terms-link { font-size: 0.6rem; color: #888; text-decoration: underline; margin-top: 15px; opacity: 0.7; cursor: pointer; }
+        
+        /* Modal Styles */
+        #terms-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center; padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #111; border: 1px solid var(--gold); padding: 30px; 
+            border-radius: 15px; max-width: 400px; width: 100%; color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body>
@@ -53,7 +62,7 @@
         <a href="https://www.instagram.com/monkstudiosproduction/" target="_blank" class="insta-link"><i class="fab fa-instagram"></i></a>
         <h1 style="letter-spacing: 4px; margin: 0; font-size: 1.2rem; text-align: center; color: #fff;">MONK STUDIOS PRODUCTION</h1>
         <p style="color: var(--gold); margin: 5px 0 10px 0; font-size: 0.6rem; letter-spacing: 3px; font-weight: bold;">TEAM VERIFIED EXPERIENCE</p>
-        <div id="winner-name-display" style="color: #fff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;"></div>
+        <div id="winner-name-display" style="color: #fff; font-size: 1rem; margin-bottom: 5px;"></div>
 
         <div class="container">
             <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #ff3333; z-index: 20;"></div>
@@ -63,7 +72,7 @@
 
         <div id="result">READY TO SPIN</div>
         <div id="auth-stamp" style="font-size: 0.7rem; color: #777; font-family: monospace;"></div>
-        <a href="terms.html" class="terms-link">Terms & Conditions Apply</a>
+        <span id="open-terms" class="terms-link">Terms & Conditions Apply</span>
     </div>
 
     <div class="controls">
@@ -74,14 +83,25 @@
         <button id="download-btn">Download Digital Receipt</button>
     </div>
 
-    <audio id="tick-sound" src="tick.wav"></audio>
+    <div id="terms-modal">
+        <div class="modal-content">
+            <h2 style="color: var(--gold); margin-top: 0; text-align: center;">Terms & Conditions</h2>
+            <ul style="font-size: 0.85rem; line-height: 1.8; color: #ccc; padding-left: 20px;">
+                <li>Offers are valid for a limited time from the date of spinning.</li>
+                <li>Only one spin is permitted per phone number per month.</li>
+                <li>Prizes are non-transferable and cannot be exchanged for cash.</li>
+                <li>Prior studio booking is mandatory to redeem any offer.</li>
+                <li>Management reserves the right to modify or cancel offers at any time.</li>
+            </ul>
+            <button id="close-terms" style="background: var(--gold); color: #000; width: 100%; margin-top: 20px; padding: 12px;">CLOSE</button>
+        </div>
+    </div>
+
     <audio id="bgm-sound" src="bgm.mp3" loop></audio>
     <audio id="success-sound" src="success.wav"></audio>
 
     <script>
-        // UPDATED URL
-        const LOG_URL = "https://script.google.com/macros/s/AKfycbxSjcU_oQ7-XTnpx-5eL3dlSkO7yA6tCGFdp1HB76y_ddVvifNC2RXFkKa17R7Otlt9gQ/exec";
-        
+        const LOG_URL = "https://script.google.com/macros/s/AKfycbzqfPP4PaDBj7HL6TLIV0KOQVb1PpDiRp5XVbmUkfSUUFb7E7Q2iucJXhbSWkOxhvEurw/exec";
         const canvas = document.getElementById("wheel");
         const ctx = canvas.getContext("2d");
         const spinBtn = document.getElementById("spin-btn");
@@ -92,14 +112,24 @@
         const resultText = document.getElementById("result");
         const winnerDisplay = document.getElementById("winner-name-display");
         const authStamp = document.getElementById("auth-stamp");
+        
+        // Modal logic
+        const termsModal = document.getElementById("terms-modal");
+        const openTerms = document.getElementById("open-terms");
+        const closeTerms = document.getElementById("close-terms");
 
-        const tick = document.getElementById("tick-sound");
+        openTerms.onclick = () => { termsModal.style.display = "flex"; };
+        closeTerms.onclick = () => { termsModal.style.display = "none"; };
+        window.onclick = (e) => { if (e.target === termsModal) termsModal.style.display = "none"; };
+
         const bgm = document.getElementById("bgm-sound");
         const success = document.getElementById("success-sound");
 
         const WHATSAPP_NUMBER = "917887621520"; 
-        const offers = ["10% Studio Off", "Rs. 500 Mixing Off", "Karaoke @ Rs. 400", "Cover @ Rs. 3500", "Rs. 500 3hr Off", "Rs. 200 Pre-book Off", "1hr Free Jam", "Spin Again"];
-        const codes = ["10OFF", "MIX500", "KARA400", "COV3500", "3HR500", "PRE200", "JAM1HR", "TRY"];
+        
+        // Updated Offer List
+        const offers = ["10% Studio Off", "Rs. 500 Mixing Off", "Karaoke+Vid Rs1500", "Cover @ Rs. 3500", "Rs. 500 3hr Off", "Rs. 200 Pre-book Off", "1hr Free Jam", "Spin Again"];
+        const codes = ["10OFF", "MIX500", "KARVID1500", "COV3500", "3HR500", "PRE200", "JAM1HR", "TRY"];
         const colors = ["#000000", "#d4af37", "#1a1a1a", "#b8860b", "#000000", "#d4af37", "#1a1a1a", "#b8860b"];
         
         let currentRotation = 0;
@@ -117,13 +147,6 @@
         }
         drawWheel();
 
-        // New Audio Tick Sync Logic
-        function playTick() {
-            tick.pause();
-            tick.currentTime = 0;
-            tick.play().catch(()=>{});
-        }
-
         spinBtn.onclick = async () => {
             const userName = nameInput.value.trim();
             const userPhone = phoneInput.value.trim();
@@ -139,37 +162,19 @@
                 const response = await fetch(`${LOG_URL}?action=check&phone=${userPhone}`);
                 const status = await response.text();
                 if (status.includes("REJECTED")) {
-                    alert("⚠️ Access Denied: Only 1 spin per artist every 30 days.");
+                    alert("⚠️ Access Denied: You have already used your spin this month.");
                     spinBtn.innerText = "SPIN TO WIN"; spinBtn.disabled = false; return;
                 }
-            } catch (e) { console.log("Check bypassed due to connection."); }
+            } catch (e) { console.log("Check failed, allowing spin."); }
 
+            // START SPIN
             bgm.volume = 0.4; bgm.play().catch(()=>{});
-            
             const spinDegrees = (360 * 10) + Math.floor(Math.random() * 360);
             currentRotation += spinDegrees;
-            
-            // Apply CSS Transition
             canvas.style.transform = `rotate(${currentRotation}deg)`;
-            
-            // Dynamic Ticking Sound Calculation
-            let lastTickSlice = 0;
-            const checkInterval = setInterval(() => {
-                const computedStyle = window.getComputedStyle(canvas);
-                const matrix = new WebKitCSSMatrix(computedStyle.transform);
-                const angle = Math.round(Math.atan2(matrix.b, matrix.a) * (180/Math.PI));
-                const currentSlice = Math.floor(((angle < 0 ? angle + 360 : angle) % 360) / 45);
-                
-                if(currentSlice !== lastTickSlice) {
-                    playTick();
-                    lastTickSlice = currentSlice;
-                }
-            }, 50);
-
             nameInput.style.display = "none"; phoneInput.style.display = "none"; spinBtn.style.visibility = "hidden";
 
             setTimeout(() => {
-                clearInterval(checkInterval);
                 bgm.pause();
                 const winningIndex = Math.floor((360 - (currentRotation % 360) + 270) % 360 / 45);
                 const winner = offers[winningIndex];
@@ -185,6 +190,7 @@
                     resultText.innerText = winner;
                     authStamp.innerText = `ID: ${finalCode}`;
                     
+                    // LOG WIN TO SHEET
                     fetch(`${LOG_URL}?action=log&name=${encodeURIComponent(userName)}&phone=${userPhone}&prize=${encodeURIComponent(winner)}&id=${finalCode}`, { mode: 'no-cors' });
                     
                     success.play().catch(()=>{});
@@ -192,7 +198,7 @@
                     claimBtn.style.display = "block"; downloadBtn.style.display = "block";
 
                     claimBtn.onclick = () => {
-                        const msg = `*MONK STUDIOS PRODUCTION*\n\nName: *${userName}*\nPhone: *${userPhone}*\nPrize: *${winner}*\nID: ${finalCode}\n\nHi Mohit, please verify my win!`;
+                        const msg = `*MONK STUDIOS PRODUCTION*\n\nName: *${userName}*\nPhone: *${userPhone}*\nPrize: *${winner}*\nID: ${finalCode}\n\nHi Team, please verify my win!`;
                         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
                     };
                 }
